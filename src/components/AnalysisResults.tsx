@@ -57,7 +57,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
           <h3 className="text-lg font-semibold text-blue-900 mb-2">
             Prescription Recommendation
           </h3>
-          <p className="text-gray-700">{recommendation}</p>
+          {/* <p className="text-gray-700">{recommendation}</p> */}
         </div>
       )}
 
@@ -68,18 +68,40 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
             <Users className="w-5 h-5 text-purple-600" />
             <h3 className="text-lg font-semibold text-gray-900">Similar Cases</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {similar_cases.map((case_, index) => (
-              <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-start">
+              <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                {/* Header with CRH number and similarity score */}
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="font-medium text-gray-900">{case_.crh_number}</p>
+                    <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
                     <p className="text-sm text-gray-600 mt-1">{case_.summary}</p>
                   </div>
-                  <span className="text-sm font-medium text-purple-600">
+                  <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
                     {(case_.similarity_score * 100).toFixed(1)}% match
                   </span>
                 </div>
+
+                {/* Extracted Data from Similar Case */}
+                {case_.data && Object.keys(case_.data).length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-300">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                      Patient Data
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {Object.entries(case_.data).map(([key, value]) => (
+                        <div key={key} className="bg-white p-2 rounded text-xs">
+                          <p className="text-gray-500 uppercase tracking-wide">
+                            {key.replace(/_/g, ' ')}
+                          </p>
+                          <p className="mt-0.5 font-medium text-gray-900">
+                            {value !== null && value !== undefined ? String(value) : 'N/A'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

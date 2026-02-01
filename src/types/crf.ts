@@ -13,6 +13,7 @@ export interface SimilarCase {
   crh_number: string;
   similarity_score: number;
   summary: string;
+  data: Record<string, any>;
 }
 
 export interface AnalysisResponse {
