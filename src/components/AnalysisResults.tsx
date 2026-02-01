@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle, AlertCircle, FileText, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, AlertCircle, FileText, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import type { AnalysisResponse } from '../types/crf';
 
 interface AnalysisResultsProps {
@@ -8,6 +8,27 @@ interface AnalysisResultsProps {
 
 export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const { extraction, recommendation, similar_cases } = results;
+  const [expandedCases, setExpandedCases] = useState<Set<number>>(new Set());
+
+  const toggleCase = (index: number) => {
+    const newExpanded = new Set(expandedCases);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedCases(newExpanded);
+  };
+
+  const isValueDifferent = (key: string, caseValue: any, extractedValue: any): boolean => {
+    // Normalize values for comparison
+    const normalizeValue = (val: any): string => {
+      if (val === null || val === undefined) return '';
+      return String(val).toLowerCase().trim();
+    };
+
+    return normalizeValue(caseValue) !== normalizeValue(extractedValue);
+  };
 
   return (
     <div className="space-y-6">
@@ -69,41 +90,75 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
             <h3 className="text-lg font-semibold text-gray-900">Similar Cases</h3>
           </div>
           <div className="space-y-4">
-            {similar_cases.map((case_, index) => (
-              <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                {/* Header with CRH number and similarity score */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
-                    <p className="text-sm text-gray-600 mt-1">{case_.summary}</p>
-                  </div>
-                  <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
-                    {(case_.similarity_score * 100).toFixed(1)}% match
-                  </span>
-                </div>
-
-                {/* Extracted Data from Similar Case */}
-                {case_.data && Object.keys(case_.data).length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-300">
-                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                      Patient Data
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {Object.entries(case_.data).map(([key, value]) => (
-                        <div key={key} className="bg-white p-2 rounded text-xs">
-                          <p className="text-gray-500 uppercase tracking-wide">
-                            {key.replace(/_/g, ' ')}
-                          </p>
-                          <p className="mt-0.5 font-medium text-gray-900">
-                            {value !== null && value !== undefined ? String(value) : 'N/A'}
-                          </p>
+            {similar_cases.map((case_, index) => {
+              const isExpanded = expandedCases.has(index);
+              return (
+                <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                  {/* Clickable Header */}
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => toggleCase(index)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start space-x-3 flex-1">
+                        {/* Chevron Icon */}
+                        {isExpanded ? (
+                          <ChevronDown className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div>
+                          <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
+                          {case_.summary && (
+                            <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc list-inside">
+                              {case_.summary.split(/[.|;]/).filter(item => item.trim()).map((point, idx) => (
+                                <li key={idx}>{point.trim()}</li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
-                      ))}
+                      </div>
+                      <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full ml-4">
+                        {(case_.similarity_score * 100).toFixed(1)}% match
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Collapsible Extracted Data */}
+                  {isExpanded && case_.data && Object.keys(case_.data).length > 0 && (
+                    <div className="px-4 pb-4 border-t border-gray-300">
+                      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3 mt-3">
+                        Patient Data
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {Object.entries(case_.data).map(([key, value]) => {
+                          const extractedValue = extraction.data[key];
+                          const isDifferent = isValueDifferent(key, value, extractedValue);
+
+                          return (
+                            <div
+                              key={key}
+                              className={`p-2 rounded text-xs ${
+                                isDifferent ? 'bg-red-50 border border-red-200' : 'bg-white'
+                              }`}
+                            >
+                              <p className="text-gray-500 uppercase tracking-wide">
+                                {key.replace(/_/g, ' ')}
+                              </p>
+                              <p className={`mt-0.5 font-medium ${
+                                isDifferent ? 'text-red-700' : 'text-gray-900'
+                              }`}>
+                                {value !== null && value !== undefined ? String(value) : 'N/A'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
