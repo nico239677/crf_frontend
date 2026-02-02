@@ -20,7 +20,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
     setExpandedCases(newExpanded);
   };
 
-  const isValueDifferent = (key: string, caseValue: any, extractedValue: any): boolean => {
+  const isValueDifferent = (caseValue: any, extractedValue: any): boolean => {
     // Normalize values for comparison
     const normalizeValue = (val: any): string => {
       if (val === null || val === undefined) return '';
@@ -99,61 +99,65 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
                     className="p-4 cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => toggleCase(index)}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start space-x-3 flex-1">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-3">
                         {/* Chevron Icon */}
                         {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                          <ChevronDown className="w-5 h-5 text-gray-600 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                          <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0" />
                         )}
-                        <div>
-                          <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
-                          {case_.summary && (
-                            <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc list-inside">
-                              {case_.summary.split(/[.|;]/).filter(item => item.trim()).map((point, idx) => (
-                                <li key={idx}>{point.trim()}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
+                        <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
                       </div>
-                      <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full ml-4">
+                      <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
                         {(case_.similarity_score * 100).toFixed(1)}% match
                       </span>
                     </div>
                   </div>
 
                   {/* Collapsible Extracted Data */}
-                  {isExpanded && case_.data && Object.keys(case_.data).length > 0 && (
+                  {isExpanded && (
                     <div className="px-4 pb-4 border-t border-gray-300">
-                      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3 mt-3">
-                        Patient Data
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {Object.entries(case_.data).map(([key, value]) => {
-                          const extractedValue = extraction.data[key];
-                          const isDifferent = isValueDifferent(key, value, extractedValue);
+                      {/* Patient Data Section */}
+                      {case_.data && Object.keys(case_.data).length > 0 ? (
+                        <>
+                          <div className="flex justify-between items-center mb-3 mt-3">
+                            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                              Patient Data ({Object.keys(case_.data).length} fields)
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                            {Object.entries(case_.data).map(([key, value]) => {
+                              const extractedValue = extraction.data[key];
+                              const isDifferent = isValueDifferent(value, extractedValue);
 
-                          return (
-                            <div
-                              key={key}
-                              className={`p-2 rounded text-xs ${
-                                isDifferent ? 'bg-red-50 border border-red-200' : 'bg-white'
-                              }`}
-                            >
-                              <p className="text-gray-500 uppercase tracking-wide">
-                                {key.replace(/_/g, ' ')}
-                              </p>
-                              <p className={`mt-0.5 font-medium ${
-                                isDifferent ? 'text-red-700' : 'text-gray-900'
-                              }`}>
-                                {value !== null && value !== undefined ? String(value) : 'N/A'}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
+                              return (
+                                <div
+                                  key={key}
+                                  className={`p-2 rounded text-xs ${
+                                    isDifferent ? 'bg-red-50 border border-red-200' : 'bg-white'
+                                  }`}
+                                >
+                                  <p className="text-gray-500 uppercase tracking-wide">
+                                    {key.replace(/_/g, ' ')}
+                                  </p>
+                                  <p className={`mt-0.5 font-medium ${
+                                    isDifferent ? 'text-red-700' : 'text-gray-900'
+                                  }`}>
+                                    {value !== null && value !== undefined ? String(value) : 'N/A'}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                          <p className="text-sm text-yellow-800">
+                            No patient data available. Backend needs to send the 'data' field with CSV values for this CRH.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
