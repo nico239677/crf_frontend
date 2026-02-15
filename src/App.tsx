@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Home } from './pages/Home';
+// import { Chat } from './components/Chat';
 import './index.css';
 
 // Create a client
@@ -16,6 +17,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Home />
+      {/* <Chat />       */}
     </QueryClientProvider>
   );
 }

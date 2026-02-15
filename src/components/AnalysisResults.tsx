@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { CheckCircle, AlertCircle, FileText, Users, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle, AlertCircle, FileText, Users, ChevronDown, ChevronRight, Save, Loader2 } from 'lucide-react';
 import type { AnalysisResponse } from '../types/crf';
+import { saveEmbedding } from '../services/crfService';
 
 interface AnalysisResultsProps {
   results: AnalysisResponse;
@@ -9,6 +10,29 @@ interface AnalysisResultsProps {
 export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const { extraction, recommendation, similar_cases } = results;
   const [expandedCases, setExpandedCases] = useState<Set<number>>(new Set());
+  const [editedData, setEditedData] = useState<Record<string, any>>(extraction.data);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleFieldChange = (key: string, value: string) => {
+    setEditedData(prev => ({ ...prev, [key]: value }));
+    setSaveStatus('idle');
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    try {
+      await saveEmbedding(extraction.crh_number, editedData);
+      setSaveStatus('success');
+      console.log('Embedding saved successfully', { crh_number: extraction.crh_number, data: editedData });
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Failed to save embedding:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const toggleCase = (index: number) => {
     const newExpanded = new Set(expandedCases);
@@ -55,17 +79,42 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
       {/* Extracted Data */}
       {extraction.success && Object.keys(extraction.data).length > 0 && (
         <div className="border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Extracted Patient Data</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Extracted Patient Data</h3>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                saveStatus === 'success'
+                  ? 'bg-green-100 text-green-700 border border-green-300'
+                  : saveStatus === 'error'
+                  ? 'bg-red-100 text-red-700 border border-red-300'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              } disabled:opacity-60 disabled:cursor-not-allowed`}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : saveStatus === 'error' ? 'Error' : 'Save'}
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(extraction.data).map(([key, value]) => (
+            {Object.entries(editedData).map(([key, value]) => (
               <div key={key} className="bg-gray-50 p-3 rounded">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{key.replace(/_/g, ' ')}</p>
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {value !== null && value !== undefined ? String(value) : 'N/A'}
-                </p>
+                <label className="text-xs text-gray-500 uppercase tracking-wide block mb-1">
+                  {key.replace(/_/g, ' ')}
+                </label>
+                <input
+                  type="text"
+                  value={value !== null && value !== undefined ? String(value) : ''}
+                  onChange={e => handleFieldChange(key, e.target.value)}
+                  className="w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                />
               </div>
             ))}
           </div>
