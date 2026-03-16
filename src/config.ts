@@ -4,3 +4,5 @@ export const PYTHON_API_BASE_URL = 'crfsearch-production.up.railway.app';
 
 // Production URL (uncomment when deploying):
 // const PYTHON_API_BASE_URL = 'https://crf-search.onrender.com';
+
+// export { PYTHON_API_BASE_URL };
