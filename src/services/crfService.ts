@@ -71,8 +71,6 @@ export const sendChatMessage = async (
   message: string,
   history: ChatMessage[]
 ): Promise<ChatResponse> => {
-  console.log("Calling the chat API:", `${PYTHON_API_BASE_URL}/chat-with-data`)
-  console.log("With the body", JSON.stringify({ message, history }))
   const response = await fetch(`${PYTHON_API_BASE_URL}/chat-with-data`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -104,6 +102,33 @@ export const saveEmbedding = async (
     const errorData = await response.json().catch(() => ({ detail: 'Save failed' }));
     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
   }
+};
+
+export interface BulkUploadResponse {
+  message: string;
+  processed: number;
+  skipped: number;
+  errors: string[];
+}
+
+/**
+ * Bulk upload CRF data from a CSV file
+ */
+export const bulkUploadCSV = async (file: File): Promise<BulkUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${PYTHON_API_BASE_URL}/bulk-upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Bulk upload failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
 };
 
 /**
