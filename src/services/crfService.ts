@@ -131,6 +131,28 @@ export const bulkUploadCSV = async (file: File): Promise<BulkUploadResponse> => 
   return await response.json();
 };
 
+export interface PatientRecord {
+  id?: string | number;
+  crh_number: string | null;
+  data: Record<string, any>;
+  created_at?: string;
+  [key: string]: any;
+}
+
+/**
+ * Fetch all patients from the crf_patients table
+ */
+export const getPatients = async (): Promise<PatientRecord[]> => {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch patients' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
 /**
  * Check API health
  */

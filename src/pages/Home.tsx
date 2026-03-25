@@ -3,11 +3,12 @@ import { useMutation } from '@tanstack/react-query';
 import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
 import { Chat } from '../components/Chat';
+import { ReportsTable } from '../components/ReportsTable';
 import { analyzeCRF, bulkUploadCSV } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
-import { Loader2, Activity, FileSearch, MessageSquare, Upload } from 'lucide-react';
+import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database } from 'lucide-react';
 
-type Tab = 'analysis' | 'chat' | 'bulk';
+type Tab = 'analysis' | 'chat' | 'bulk' | 'reports';
 
 export const Home: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('analysis');
@@ -110,6 +111,17 @@ export const Home: React.FC = () => {
           >
             <Upload className="w-4 h-4" />
             Upload multiple CRs
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'reports'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            Reports
           </button>
         </div>
 
@@ -304,6 +316,13 @@ export const Home: React.FC = () => {
         {activeTab === 'chat' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <Chat />
+          </div>
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 'reports' && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <ReportsTable />
           </div>
         )}
       </div>
