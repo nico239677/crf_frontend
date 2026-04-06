@@ -105,10 +105,10 @@ export const saveEmbedding = async (
 };
 
 export interface BulkUploadResponse {
-  message: string;
-  processed: number;
-  skipped: number;
-  errors: string[];
+  inserted: string[];
+  updated: string[];
+  skipped: string[];
+  errors: { crh_number: string | null; error: string }[];
 }
 
 /**
@@ -119,6 +119,26 @@ export const bulkUploadCSV = async (file: File): Promise<BulkUploadResponse> => 
   formData.append('file', file);
 
   const response = await fetch(`${PYTHON_API_BASE_URL}/bulk-upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Bulk upload failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
+/**
+ * Bulk upload CRF data from one or more PDF files
+ */
+export const bulkUploadPDFs = async (files: File[]): Promise<BulkUploadResponse> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  const response = await fetch(`${PYTHON_API_BASE_URL}/bulk-upload-pdfs`, {
     method: 'POST',
     body: formData,
   });
@@ -143,7 +163,10 @@ export interface PatientRecord {
  * Fetch all patients from the crf_patients table
  */
 export const getPatients = async (): Promise<PatientRecord[]> => {
+  console.log("Getting all CRs")
   const response = await fetch(`${PYTHON_API_BASE_URL}/patients`);
+
+  console.log(" : loading patients")
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch patients' }));

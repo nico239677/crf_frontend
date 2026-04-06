@@ -4,7 +4,7 @@ import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
 import { Chat } from '../components/Chat';
 import { ReportsTable } from '../components/ReportsTable';
-import { analyzeCRF, bulkUploadCSV } from '../services/crfService';
+import { analyzeCRF, bulkUploadCSV, bulkUploadPDFs } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
 import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database } from 'lucide-react';
 
@@ -14,8 +14,8 @@ export const Home: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('analysis');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResponse | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvDragOver, setCsvDragOver] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkDragOver, setBulkDragOver] = useState(false);
 
   const analysisMutation = useMutation({
     mutationFn: (file: File) => analyzeCRF(file, true, 5),
@@ -28,26 +28,36 @@ export const Home: React.FC = () => {
   });
 
   const bulkUploadMutation = useMutation({
-    mutationFn: (file: File) => bulkUploadCSV(file),
+    mutationFn: (files: File[]) => {
+      if (files[0]?.name.toLowerCase().endsWith('.csv')) {
+        return bulkUploadCSV(files[0]);
+      }
+      return bulkUploadPDFs(files);
+    },
     onError: (error: any) => {
       console.error('Bulk upload failed:', error);
     },
   });
 
-  const handleCsvDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const isBulkPDF = bulkFiles.length > 0 && bulkFiles[0].name.toLowerCase().endsWith('.pdf');
+
+  const handleBulkDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setCsvDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.csv')) {
-      setCsvFile(file);
+    setBulkDragOver(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (dropped.length === 0) return;
+    const allPDF = dropped.every((f) => f.name.toLowerCase().endsWith('.pdf'));
+    const isCSV = dropped.length === 1 && dropped[0].name.toLowerCase().endsWith('.csv');
+    if (allPDF || isCSV) {
+      setBulkFiles(dropped);
       bulkUploadMutation.reset();
     }
   };
 
-  const handleCsvInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCsvFile(file);
+  const handleBulkInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) {
+      setBulkFiles(files);
       bulkUploadMutation.reset();
     }
   };
@@ -203,59 +213,62 @@ export const Home: React.FC = () => {
         {/* Bulk Upload Tab */}
         {activeTab === 'bulk' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Bulk Upload from CSV</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">Bulk Upload</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Upload a CSV file to generate embeddings for multiple records and insert them into the database.
+              Upload a CSV file or one or more PDF files to extract, embed, and insert records into the database.
             </p>
 
             {/* Drop zone */}
-            {!csvFile && (
+            {bulkFiles.length === 0 && (
               <div
-                onDragOver={(e) => { e.preventDefault(); setCsvDragOver(true); }}
-                onDragLeave={() => setCsvDragOver(false)}
-                onDrop={handleCsvDrop}
+                onDragOver={(e) => { e.preventDefault(); setBulkDragOver(true); }}
+                onDragLeave={() => setBulkDragOver(false)}
+                onDrop={handleBulkDrop}
                 className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors duration-200 cursor-pointer ${
-                  csvDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+                  bulkDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
                 }`}
-                onClick={() => document.getElementById('csv-input')?.click()}
+                onClick={() => document.getElementById('bulk-input')?.click()}
               >
                 <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-700">Drop your CSV file here or click to browse</p>
-                <p className="text-xs text-gray-400 mt-1">.csv files only</p>
+                <p className="text-sm font-medium text-gray-700">Drop your CSV or PDF files here, or click to browse</p>
+                <p className="text-xs text-gray-400 mt-1">.csv (single file) or .pdf (one or more)</p>
                 <input
-                  id="csv-input"
+                  id="bulk-input"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.pdf"
+                  multiple
                   className="hidden"
-                  onChange={handleCsvInput}
+                  onChange={handleBulkInput}
                 />
               </div>
             )}
 
-            {/* Selected file + actions */}
-            {csvFile && (
+            {/* Selected files + actions */}
+            {bulkFiles.length > 0 && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Upload className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{csvFile.name}</p>
-                      <p className="text-xs text-gray-400">{(csvFile.size / 1024).toFixed(1)} KB</p>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-2">
+                  {bulkFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Upload className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{f.name}</p>
+                        <p className="text-xs text-gray-400">{(f.size / 1024).toFixed(1)} KB</p>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                   {!bulkUploadMutation.isPending && (
                     <button
-                      onClick={() => { setCsvFile(null); bulkUploadMutation.reset(); }}
-                      className="text-gray-400 hover:text-gray-600 transition-colors text-xs"
+                      onClick={() => { setBulkFiles([]); bulkUploadMutation.reset(); }}
+                      className="text-gray-400 hover:text-gray-600 transition-colors text-xs pt-1"
                     >
-                      Remove
+                      Remove all
                     </button>
                   )}
                 </div>
 
                 {!bulkUploadMutation.isSuccess && !bulkUploadMutation.isPending && (
                   <button
-                    onClick={() => bulkUploadMutation.mutate(csvFile)}
+                    onClick={() => bulkUploadMutation.mutate(bulkFiles)}
                     className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
                     Upload &amp; Process
@@ -265,27 +278,30 @@ export const Home: React.FC = () => {
                 {bulkUploadMutation.isPending && (
                   <div className="flex items-center justify-center gap-3 py-4">
                     <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                    <p className="text-sm text-gray-600">Processing records...</p>
+                    <p className="text-sm text-gray-600">
+                      {isBulkPDF ? 'Extracting and processing PDFs...' : 'Processing records...'}
+                    </p>
                   </div>
                 )}
 
                 {bulkUploadMutation.isSuccess && bulkUploadMutation.data && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-1">
-                    <p className="text-sm font-semibold text-green-800">{bulkUploadMutation.data.message}</p>
-                    <p className="text-sm text-green-700">Inserted: {bulkUploadMutation.data.processed}</p>
-                    <p className="text-sm text-green-700">Skipped (already exist): {bulkUploadMutation.data.skipped}</p>
+                    <p className="text-sm font-semibold text-green-800">Upload complete</p>
+                    <p className="text-sm text-green-700">Inserted: {bulkUploadMutation.data.inserted.length}</p>
+                    <p className="text-sm text-green-700">Updated: {bulkUploadMutation.data.updated.length}</p>
+                    <p className="text-sm text-green-700">Skipped (already exist): {bulkUploadMutation.data.skipped.length}</p>
                     {bulkUploadMutation.data.errors.length > 0 && (
                       <div className="mt-2">
                         <p className="text-sm font-medium text-red-700">Errors:</p>
                         <ul className="list-disc list-inside text-sm text-red-600 mt-1 space-y-0.5">
                           {bulkUploadMutation.data.errors.map((err, i) => (
-                            <li key={i}>{err}</li>
+                            <li key={i}>{err.crh_number ? `${err.crh_number}: ` : ''}{err.error}</li>
                           ))}
                         </ul>
                       </div>
                     )}
                     <button
-                      onClick={() => { setCsvFile(null); bulkUploadMutation.reset(); }}
+                      onClick={() => { setBulkFiles([]); bulkUploadMutation.reset(); }}
                       className="mt-3 w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                     >
                       Upload Another File
@@ -300,7 +316,7 @@ export const Home: React.FC = () => {
                       {(bulkUploadMutation.error as Error)?.message || 'An unexpected error occurred.'}
                     </p>
                     <button
-                      onClick={() => bulkUploadMutation.mutate(csvFile)}
+                      onClick={() => bulkUploadMutation.mutate(bulkFiles)}
                       className="mt-3 bg-red-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-700 transition-colors"
                     >
                       Retry
