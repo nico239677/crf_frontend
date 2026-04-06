@@ -164,7 +164,9 @@ export interface PatientRecord {
  */
 export const getPatients = async (): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
-  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`);
+  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`, {
+    headers: { 'Content-Type': 'application/json' }
+  });
 
   console.log(" : loading patients")
 
