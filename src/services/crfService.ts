@@ -1,4 +1,5 @@
 import { PYTHON_API_BASE_URL } from '../config';
+import { getSupabase } from '../config/supabase';
 import type { AnalysisResponse, ExtractionResult } from '../types/crf';
 
 /**
@@ -164,9 +165,15 @@ export interface PatientRecord {
  */
 export const getPatients = async (): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
+  const supabase = await getSupabase();
+  const { data: { session } } = await supabase.auth.getSession();
+  const jwtToken = session?.access_token;
   const response = await fetch(`${PYTHON_API_BASE_URL}/patients`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }  });
+    headers: {
+      "Authorization": `Bearer ${jwtToken}`,
+      "Content-Type": "application/json"
+    }
+  });
 
   console.log(" : loading patients")
 
