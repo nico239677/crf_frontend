@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPatients } from '../services/crfService';
 import type { PatientRecord } from '../services/crfService';
-import { Loader2, FileText, RefreshCw, Filter, X, Download, ChevronDown } from 'lucide-react';
+import { Loader2, FileText, RefreshCw, X, Download, ChevronDown } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // MongoDB-style client-side filter
@@ -350,9 +350,6 @@ const ColFilterPopover: React.FC<ColFilterPopoverProps> = ({ col, records, filte
 const PAGE_SIZE = 20;
 
 export const ReportsTable: React.FC = () => {
-  const [filterInput, setFilterInput] = useState('');
-  const [appliedFilter, setAppliedFilter] = useState<Record<string, any>>({});
-  const [filterError, setFilterError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [columnFilters, setColumnFilters] = useState<Record<string, ColFilterState>>({});
   const [activeFilterCol, setActiveFilterCol] = useState<string | null>(null);
@@ -363,30 +360,6 @@ export const ReportsTable: React.FC = () => {
     queryFn: getPatients,
     staleTime: Infinity,
   });
-
-  const handleApplyFilter = () => {
-    const trimmed = filterInput.trim();
-    if (!trimmed) { setAppliedFilter({}); setFilterError(null); return; }
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-        setFilterError('Filter must be a JSON object, e.g. {"crh_number": "12345"}');
-        return;
-      }
-      setAppliedFilter(parsed);
-      setFilterError(null);
-      setPage(0);
-    } catch {
-      setFilterError('Invalid JSON. Please enter a valid MongoDB-style query.');
-    }
-  };
-
-  const handleClearFilter = () => {
-    setFilterInput('');
-    setAppliedFilter({});
-    setFilterError(null);
-    setPage(0);
-  };
 
   const openColFilter = (col: string, e: React.MouseEvent<Element>) => {
     if (activeFilterCol === col) { setActiveFilterCol(null); return; }
@@ -409,16 +382,11 @@ export const ReportsTable: React.FC = () => {
     setPage(0);
   };
 
-  const mongoFiltered = useMemo(() => {
-    if (!patients) return [];
-    if (Object.keys(appliedFilter).length === 0) return patients;
-    return applyMongoFilter(patients, appliedFilter);
-  }, [patients, appliedFilter]);
-
   const filtered = useMemo(() => {
-    if (Object.keys(columnFilters).length === 0) return mongoFiltered;
-    return applyColFilters(mongoFiltered, columnFilters);
-  }, [mongoFiltered, columnFilters]);
+    if (!patients) return [];
+    if (Object.keys(columnFilters).length === 0) return patients;
+    return applyColFilters(patients, columnFilters);
+  }, [patients, columnFilters]);
 
   const columns = useMemo(() => deriveColumns(patients ?? []), [patients]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
