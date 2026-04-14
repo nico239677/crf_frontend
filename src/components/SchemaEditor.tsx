@@ -170,6 +170,14 @@ export const SchemaEditor: React.FC = () => {
     saveMutation.mutate({ fields: newSchema, renames: newRenames });
   };
 
+  const handleSaveAll = () => {
+    if (!localSchema) return;
+    setSaveStatus('saving');
+    setSaveError('');
+    saveMutation.mutate({ fields: localSchema, renames: pendingRenames });
+  };
+
+  const hasUnsavedChanges = localSchema !== null && JSON.stringify(localSchema) !== JSON.stringify(schema);
   const displaySchema = localSchema ?? schema ?? [];
   const panelOpen = editingField !== null;
 
@@ -213,15 +221,21 @@ export const SchemaEditor: React.FC = () => {
             <Plus className="w-3.5 h-3.5" />
             Ajouter
           </button>
-          {saveStatus !== 'idle' && (
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg ${
-              saveStatus === 'saving' ? 'text-gray-500'
-              : saveStatus === 'success' ? 'text-green-700 bg-green-50 border border-green-200'
-              : 'text-red-700 bg-red-50 border border-red-200'
-            }`}>
-              {saveStatus === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {saveStatus === 'saving' ? 'Enregistrement...' : saveStatus === 'success' ? 'Enregistré !' : 'Erreur'}
-            </span>
+          {hasUnsavedChanges && (
+            <button
+              onClick={handleSaveAll}
+              disabled={saveStatus === 'saving'}
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                saveStatus === 'success'
+                  ? 'bg-green-100 text-green-700 border border-green-300'
+                  : saveStatus === 'error'
+                  ? 'bg-red-100 text-red-700 border border-red-300'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              } disabled:opacity-60`}
+            >
+              {saveStatus === 'saving' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {saveStatus === 'saving' ? 'Enregistrement...' : saveStatus === 'success' ? 'Enregistré !' : saveStatus === 'error' ? 'Erreur' : 'Enregistrer'}
+            </button>
           )}
         </div>
       </div>
