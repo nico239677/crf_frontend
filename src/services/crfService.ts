@@ -176,6 +176,47 @@ export const getPatients = async (): Promise<PatientRecord[]> => {
   return await response.json();
 };
 
+export interface SchemaField {
+  name: string;
+  type: string;
+  description: string;
+  sections: string[];
+  optional: boolean;
+  constraints: Record<string, number | undefined>;
+  literal_values: string[];
+}
+
+/**
+ * Fetch the current CRF field schema
+ */
+export const getSchema = async (): Promise<SchemaField[]> => {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch schema' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+};
+
+/**
+ * Update the CRF field schema (rename/add columns + save JSON)
+ */
+export const updateSchema = async (
+  fields: SchemaField[],
+  renames: Record<string, string> = {}
+): Promise<{ status: string; fields: number; ddl_run: string[] }> => {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ schema: fields, renames }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Schema update failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+};
+
 /**
  * Check API health
  */

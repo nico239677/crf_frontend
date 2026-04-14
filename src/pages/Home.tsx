@@ -4,11 +4,12 @@ import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
 import { Chat } from '../components/Chat';
 import { ReportsTable } from '../components/ReportsTable';
+import { SchemaEditor } from '../components/SchemaEditor';
 import { analyzeCRF, bulkUploadCSV, bulkUploadPDFs } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
-import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database } from 'lucide-react';
+import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database, Settings2 } from 'lucide-react';
 
-type Tab = 'analysis' | 'chat' | 'bulk' | 'reports';
+type Tab = 'analysis' | 'chat' | 'bulk' | 'reports' | 'schema';
 
 export const Home: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('analysis');
@@ -132,6 +133,17 @@ export const Home: React.FC = () => {
           >
             <Database className="w-4 h-4" />
             Reports
+          </button>
+          <button
+            onClick={() => setActiveTab('schema')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'schema'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Settings2 className="w-4 h-4" />
+            Schéma
           </button>
         </div>
 
@@ -339,6 +351,13 @@ export const Home: React.FC = () => {
         {activeTab === 'reports' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <ReportsTable />
+          </div>
+        )}
+
+        {/* Schema Tab */}
+        {activeTab === 'schema' && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <SchemaEditor />
           </div>
         )}
       </div>
