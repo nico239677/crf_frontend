@@ -86,20 +86,20 @@ export const sendChatMessage = async (
 };
 
 /**
- * Save a CRF document's embedding to Supabase via the backend
+ * Confirm and persist a CRF record to Supabase (crf_patients + embeddings)
  */
 export const saveEmbedding = async (
   crh_number: string | null,
   data: Record<string, any>
 ): Promise<void> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/save`, {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/confirm`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ crh_number, data }),
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: 'Save failed' }));
+    const errorData = await response.json().catch(() => ({ detail: 'Confirm failed' }));
     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
   }
 };
@@ -166,7 +166,7 @@ export const getPatients = async (): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
   const response = await fetch(`${PYTHON_API_BASE_URL}/patients`);
 
-  console.log(" : loading patients")
+  console.log(response)
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch patients' }));

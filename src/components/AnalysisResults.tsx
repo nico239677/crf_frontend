@@ -100,7 +100,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : saveStatus === 'error' ? 'Error' : 'Save'}
+              {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : saveStatus === 'error' ? 'Error' : 'Confirm & Save'}
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
