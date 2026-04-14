@@ -81,7 +81,7 @@ export const Home: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <Activity className="w-10 h-10 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">CRF Analysis</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Clinical Data Platform</h1>
           </div>
           <p className="text-lg text-gray-600">
             Upload a Case Report Form to extract patient data and get prescription recommendations
