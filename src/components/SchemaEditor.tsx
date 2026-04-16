@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, RefreshCw, X, Check, Table2, ArrowLeft } from 'lucide-react';
-import { getSchema, updateSchema, getTables } from '../services/crfService';
+import { Save, Loader2, RefreshCw, X, Check, Table2, ArrowLeft, Pencil } from 'lucide-react';
+import { getSchema, updateSchema, getTables, renameTable } from '../services/crfService';
 import type { SchemaField } from '../services/crfService';
 import { TableDropdown } from './TableDropdown';
 
@@ -314,6 +314,10 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({ selectedTable, onTab
   const uid = useId();
 
   const [creatingNewTable, setCreatingNewTable] = useState(false);
+  const [renamingTable, setRenamingTable] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
 
   // Use the shared selected table; fall back to empty string while nothing is selected
   const tableName = selectedTable ?? '';
@@ -421,6 +425,39 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({ selectedTable, onTab
     saveMutation.mutate({ fields: localSchema, renames: pendingRenames, table: tableName });
   };
 
+  const startRename = () => {
+    setRenameValue(tableName);
+    setRenameError('');
+    setRenamingTable(true);
+  };
+
+  const cancelRename = () => {
+    setRenamingTable(false);
+    setRenameError('');
+  };
+
+  const confirmRename = async () => {
+    const newName = renameValue.trim();
+    if (!newName || newName === tableName) { cancelRename(); return; }
+    if (tables?.includes(newName)) {
+      setRenameError(`Le nom "${newName}" est déjà utilisé.`);
+      return;
+    }
+    setRenameSaving(true);
+    setRenameError('');
+    try {
+      await renameTable(tableName, newName);
+      queryClient.invalidateQueries({ queryKey: ['tables'] });
+      queryClient.invalidateQueries({ queryKey: ['schema', tableName] });
+      onTableChange(newName);
+      setRenamingTable(false);
+    } catch (e: any) {
+      setRenameError(e?.message ?? 'Échec du renommage');
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+
   const handleSaveNewTable = (newTableName: string, fields: SchemaField[]) => {
     setTableName(newTableName);
     setLocalSchema(fields);
@@ -504,24 +541,62 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({ selectedTable, onTab
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900">Schéma</h2>
-          {tables && tables.length > 0 && (
-            <TableDropdown
-              tables={tables}
-              selected={tableName}
-              onSelect={(name) => {
-                setTableName(name);
-                setLocalSchema(null);
-                setEditingField(null);
-                setPendingRenames({});
-                setSaveStatus('idle');
-              }}
-            />
+          {tables && tables.length > 0 && !renamingTable && (
+            <div className="flex items-center gap-1">
+              <TableDropdown
+                tables={tables}
+                selected={tableName}
+                onSelect={(name) => {
+                  setTableName(name);
+                  setLocalSchema(null);
+                  setEditingField(null);
+                  setPendingRenames({});
+                  setSaveStatus('idle');
+                }}
+              />
+              <button
+                onClick={startRename}
+                title="Renommer la table"
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
-          <p className="text-sm text-gray-500">
-            {displaySchema.length} champ{displaySchema.length !== 1 ? 's' : ''} · cliquer sur une ligne pour modifier
-          </p>
+          {renamingTable && (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={renameValue}
+                onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') confirmRename();
+                  if (e.key === 'Escape') cancelRename();
+                }}
+                className="border border-blue-400 rounded-lg px-2 py-1 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 w-44"
+              />
+              <button
+                onClick={confirmRename}
+                disabled={renameSaving || !renameValue.trim()}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors"
+              >
+                {renameSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                OK
+              </button>
+              <button onClick={cancelRename} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+              {renameError && <span className="text-xs text-red-600">{renameError}</span>}
+            </div>
+          )}
+          {!renamingTable && (
+            <p className="text-sm text-gray-500">
+              {displaySchema.length} champ{displaySchema.length !== 1 ? 's' : ''} · cliquer sur une ligne pour modifier
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => { setLocalSchema(null); refetch(); setSaveStatus('idle'); setPendingRenames({}); handleClosePanel(); }}

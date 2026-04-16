@@ -170,6 +170,21 @@ export interface PatientRecord {
 }
 
 /**
+ * Rename a table (updates table_name in crf_config and crf_data)
+ */
+export const renameTable = async (oldName: string, newName: string): Promise<void> => {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/tables/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+    body: JSON.stringify({ old_name: oldName, new_name: newName }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Rename failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+};
+
+/**
  * Fetch all table names for the current user (reads crf_config directly via Supabase)
  */
 export const getTables = async (): Promise<string[]> => {
