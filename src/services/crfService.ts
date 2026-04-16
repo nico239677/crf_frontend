@@ -170,11 +170,24 @@ export interface PatientRecord {
 }
 
 /**
+ * Fetch all table names for the current user (reads crf_config directly via Supabase)
+ */
+export const getTables = async (): Promise<string[]> => {
+  const { getSupabase } = await import('../config/supabase');
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('crf_config')
+    .select('table_name');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: { table_name: string }) => r.table_name);
+};
+
+/**
  * Fetch all patients from the crf_patients table
  */
-export const getPatients = async (): Promise<PatientRecord[]> => {
+export const getPatients = async (tableName: string = 'cardiologie'): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
-  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`, {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/patients?table_name=${encodeURIComponent(tableName)}`, {
     headers: await authHeaders(),
   });
 
@@ -194,15 +207,15 @@ export interface SchemaField {
   description: string;
   sections: string[];
   optional: boolean;
-  constraints: Record<string, number | undefined>;
+  constraints: Record<string, number | string | undefined>;
   literal_values: string[];
 }
 
 /**
  * Fetch the current CRF field schema
  */
-export const getSchema = async (): Promise<SchemaField[]> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`, {
+export const getSchema = async (tableName: string = 'cardiologie'): Promise<SchemaField[]> => {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/schema?table_name=${encodeURIComponent(tableName)}`, {
     headers: await authHeaders(),
   });
   if (!response.ok) {
@@ -217,9 +230,10 @@ export const getSchema = async (): Promise<SchemaField[]> => {
  */
 export const updateSchema = async (
   fields: SchemaField[],
-  renames: Record<string, string> = {}
+  renames: Record<string, string> = {},
+  tableName: string = 'cardiologie'
 ): Promise<{ status: string; fields: number; ddl_run: string[] }> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`, {
+  const response = await fetch(`${PYTHON_API_BASE_URL}/schema?table_name=${encodeURIComponent(tableName)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...await authHeaders() },
     body: JSON.stringify({ schema: fields, renames }),

@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getPatients } from '../services/crfService';
+import { getPatients, getTables } from '../services/crfService';
 import type { PatientRecord } from '../services/crfService';
-import { Loader2, FileText, RefreshCw, X, Download, ChevronDown } from 'lucide-react';
+import { TableDropdown } from './TableDropdown';
+import { Loader2, FileText, RefreshCw, X, Download, ChevronDown, Table2 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Column filters
@@ -103,7 +104,7 @@ function formatHeader(col: string): string {
   return col.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function downloadCSV(records: PatientRecord[], columns: string[]) {
+function downloadCSV(records: PatientRecord[], columns: string[], tableName: string) {
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const header = columns.map(escape).join(',');
   const rows = records.map((r) => columns.map((col) => escape(getCellValue(r, col))).join(','));
@@ -112,7 +113,7 @@ function downloadCSV(records: PatientRecord[], columns: string[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'patients.csv';
+  a.download = `${tableName}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -283,17 +284,45 @@ const ColFilterPopover: React.FC<ColFilterPopoverProps> = ({ col, records, filte
 
 const PAGE_SIZE = 20;
 
-export const ReportsTable: React.FC = () => {
+interface ReportsTableProps {
+  selectedTable: string | null;
+  onTableChange: (name: string) => void;
+}
+
+export const ReportsTable: React.FC<ReportsTableProps> = ({ selectedTable, onTableChange }) => {
   const [page, setPage] = useState(0);
   const [columnFilters, setColumnFilters] = useState<Record<string, ColFilterState>>({});
   const [activeFilterCol, setActiveFilterCol] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const { data: patients, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['patients'],
-    queryFn: getPatients,
+  const { data: tables, isLoading: tablesLoading } = useQuery({
+    queryKey: ['tables'],
+    queryFn: getTables,
     staleTime: Infinity,
   });
+
+  // Auto-select first table once list loads (only if nothing selected yet)
+  useEffect(() => {
+    if (tables && tables.length > 0 && selectedTable === null) {
+      onTableChange(tables[0]);
+    }
+  }, [tables, selectedTable, onTableChange]);
+
+  const activeTable = selectedTable ?? '';
+
+  const { data: patients, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ['patients', activeTable],
+    queryFn: () => getPatients(activeTable),
+    staleTime: Infinity,
+    enabled: activeTable.length > 0,
+  });
+
+  const switchTable = (name: string) => {
+    onTableChange(name);
+    setColumnFilters({});
+    setPage(0);
+    setActiveFilterCol(null);
+  };
 
   const openColFilter = (col: string, e: React.MouseEvent<Element>) => {
     if (activeFilterCol === col) { setActiveFilterCol(null); return; }
@@ -327,46 +356,75 @@ export const ReportsTable: React.FC = () => {
   const pageRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const activeColFilterCount = Object.keys(columnFilters).length;
 
-  if (isLoading) {
+  if (tablesLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-gray-600 text-sm">Loading patients…</p>
+        <p className="text-gray-600 text-sm">Loading tables…</p>
+      </div>
+    );
+  }
+
+  if (!tables || tables.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-500 text-sm border border-dashed border-gray-200 rounded-lg">
+        <Table2 className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+        No tables found. Create a table in the Schema tab first.
+      </div>
+    );
+  }
+
+  const toolbar = (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <h2 className="text-xl font-semibold text-gray-900">Reports</h2>
+        <TableDropdown tables={tables} selected={activeTable} onSelect={switchTable} />
+      </div>
+      <button
+        onClick={() => refetch()}
+        disabled={isFetching}
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+      >
+        <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+        Refresh
+      </button>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {toolbar}
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-gray-600 text-sm">Loading records…</p>
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <p className="text-red-800 font-semibold">Failed to load patients</p>
-        <p className="text-red-700 text-sm mt-1">{(error as Error)?.message ?? 'Unknown error'}</p>
-        <button onClick={() => refetch()} className="mt-4 bg-red-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-700 transition-colors">
-          Retry
-        </button>
+      <div className="space-y-4">
+        {toolbar}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <p className="text-red-800 font-semibold">Failed to load records</p>
+          <p className="text-red-700 text-sm mt-1">{(error as Error)?.message ?? 'Unknown error'}</p>
+          <button onClick={() => refetch()} className="mt-4 bg-red-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-700 transition-colors">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Reports</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {filtered.length} / {patients?.length ?? 0} records
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+      {/* Toolbar with table selector */}
+      {toolbar}
+      <p className="text-sm text-gray-500 -mt-2">
+        {filtered.length} / {patients?.length ?? 0} records
+      </p>
 
       {/* MongoDB filter bar — hidden for now
       <div className="space-y-2">
@@ -496,7 +554,7 @@ export const ReportsTable: React.FC = () => {
             <span>{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
           )}
           <button
-            onClick={() => downloadCSV(filtered, columns)}
+            onClick={() => downloadCSV(filtered, columns, activeTable)}
             className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
           >
             <Download className="w-4 h-4" />

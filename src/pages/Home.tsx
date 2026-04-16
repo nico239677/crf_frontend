@@ -18,6 +18,7 @@ interface HomeProps {
 
 export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
   const [activeTab, setActiveTab] = useState<Tab>('analysis');
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResponse | null>(null);
   const [bulkFiles, setBulkFiles] = useState<File[]>([]);
@@ -372,14 +373,14 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
         {/* Reports Tab */}
         {activeTab === 'reports' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <ReportsTable />
+            <ReportsTable selectedTable={selectedTable} onTableChange={setSelectedTable} />
           </div>
         )}
 
         {/* Schema Tab */}
         {activeTab === 'schema' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <SchemaEditor />
+            <SchemaEditor selectedTable={selectedTable} onTableChange={setSelectedTable} />
           </div>
         )}
       </div>
