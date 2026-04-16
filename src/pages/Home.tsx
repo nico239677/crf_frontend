@@ -7,11 +7,16 @@ import { ReportsTable } from '../components/ReportsTable';
 import { SchemaEditor } from '../components/SchemaEditor';
 import { analyzeCRF, bulkUploadCSV, bulkUploadPDFs } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
-import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database, Settings2 } from 'lucide-react';
+import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database, Settings2, LogOut } from 'lucide-react';
 
 type Tab = 'analysis' | 'chat' | 'bulk' | 'reports' | 'schema';
 
-export const Home: React.FC = () => {
+interface HomeProps {
+  onSignOut?: () => void;
+  userEmail?: string;
+}
+
+export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
   const [activeTab, setActiveTab] = useState<Tab>('analysis');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResponse | null>(null);
@@ -78,12 +83,29 @@ export const Home: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <Activity className="w-10 h-10 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Clinical Data Platform</h1>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <Activity className="w-10 h-10 text-blue-600" />
+              <h1 className="text-4xl font-bold text-gray-900">Clinical Data Platform</h1>
+            </div>
+            {onSignOut && (
+              <div className="flex items-center gap-3">
+                {userEmail && (
+                  <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
+                )}
+                <button
+                  onClick={onSignOut}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                  title="Se déconnecter"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Déconnexion</span>
+                </button>
+              </div>
+            )}
           </div>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 text-center">
             Upload a Case Report Form to extract patient data and get prescription recommendations
           </p>
         </div>

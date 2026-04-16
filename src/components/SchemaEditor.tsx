@@ -163,11 +163,7 @@ export const SchemaEditor: React.FC = () => {
     setLocalSchema(newSchema);
     setEditingField(null);
     setIsAddingNew(false);
-
-    // Auto-save to Supabase immediately
-    setSaveStatus('saving');
-    setSaveError('');
-    saveMutation.mutate({ fields: newSchema, renames: newRenames });
+    setSaveStatus('idle');
   };
 
   const handleSaveAll = () => {

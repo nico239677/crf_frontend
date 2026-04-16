@@ -1,5 +1,12 @@
 import { PYTHON_API_BASE_URL } from '../config';
+import { getAccessToken } from '../config/supabase';
 import type { AnalysisResponse, ExtractionResult } from '../types/crf';
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getAccessToken();
+  if (token) return { Authorization: `Bearer ${token}` };
+  return {};
+}
 
 /**
  * Upload and analyze a CRF PDF file
@@ -19,6 +26,7 @@ export const analyzeCRF = async (
     `${PYTHON_API_BASE_URL}/analyze?find_similar=${findSimilar}&num_similar=${numSimilar}`,
     {
       method: 'POST',
+      headers: await authHeaders(),
       body: formData,
     }
   );
@@ -73,7 +81,7 @@ export const sendChatMessage = async (
 ): Promise<ChatResponse> => {
   const response = await fetch(`${PYTHON_API_BASE_URL}/chat-with-data`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
     body: JSON.stringify({ message, history }),
   });
 
@@ -94,7 +102,7 @@ export const saveEmbedding = async (
 ): Promise<void> => {
   const response = await fetch(`${PYTHON_API_BASE_URL}/confirm`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
     body: JSON.stringify({ crh_number, data }),
   });
 
@@ -120,6 +128,7 @@ export const bulkUploadCSV = async (file: File): Promise<BulkUploadResponse> => 
 
   const response = await fetch(`${PYTHON_API_BASE_URL}/bulk-upload`, {
     method: 'POST',
+    headers: await authHeaders(),
     body: formData,
   });
 
@@ -140,6 +149,7 @@ export const bulkUploadPDFs = async (files: File[]): Promise<BulkUploadResponse>
 
   const response = await fetch(`${PYTHON_API_BASE_URL}/bulk-upload-pdfs`, {
     method: 'POST',
+    headers: await authHeaders(),
     body: formData,
   });
 
@@ -164,7 +174,9 @@ export interface PatientRecord {
  */
 export const getPatients = async (): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
-  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`);
+  const response = await fetch(`${PYTHON_API_BASE_URL}/patients`, {
+    headers: await authHeaders(),
+  });
 
   console.log(response)
 
@@ -190,7 +202,9 @@ export interface SchemaField {
  * Fetch the current CRF field schema
  */
 export const getSchema = async (): Promise<SchemaField[]> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`);
+  const response = await fetch(`${PYTHON_API_BASE_URL}/schema`, {
+    headers: await authHeaders(),
+  });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Failed to fetch schema' }));
     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
@@ -207,7 +221,7 @@ export const updateSchema = async (
 ): Promise<{ status: string; fields: number; ddl_run: string[] }> => {
   const response = await fetch(`${PYTHON_API_BASE_URL}/schema`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
     body: JSON.stringify({ schema: fields, renames }),
   });
   if (!response.ok) {
