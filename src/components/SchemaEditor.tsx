@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Save, Loader2, RefreshCw, X, Check, Table2, ArrowLeft } from 'lucide-react';
+import { Save, Loader2, RefreshCw, X, Check, Table2, ArrowLeft } from 'lucide-react';
 import { getSchema, updateSchema, getTables } from '../services/crfService';
 import type { SchemaField } from '../services/crfService';
 import { TableDropdown } from './TableDropdown';
@@ -88,7 +88,6 @@ const showConstraints = (type: string) => ['int', 'float', 'binary'].includes(ty
 const GRID = '1fr 110px 2fr 140px 160px 80px';
 
 const isNumerical = (type: string) => type === 'float' || type === 'int';
-const showValues   = (type: string) => isNumerical(type) || type === 'literal';
 
 // ---------------------------------------------------------------------------
 // RowInputs — reused for both create-table and inline-add
@@ -631,7 +630,7 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({ selectedTable, onTab
                 <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
                 <select value={editingField.type} onChange={e => setEditingField({ ...editingField, type: e.target.value })}
                   className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                  {FIELD_TYPES.map(t => <option key={t} value={t}>{typeLabel(t)} ({t})</option>)}
+                  {FIELD_TYPES.map(t => <option key={t} value={t}>{typeLabel(t)}</option>)}
                 </select>
               </div>
               <div>
