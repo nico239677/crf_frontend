@@ -1,10 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Plus } from 'lucide-react';
 import { sendChatMessage } from '../services/crfService';
 import type { ChatMessage } from '../services/crfService';
 
-export const Chat: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+interface ChatProps {
+  messages: ChatMessage[];
+  onMessagesChange: (messages: ChatMessage[]) => void;
+  onNewDiscussion: () => void;
+}
+
+export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDiscussion }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export const Chat: React.FC = () => {
     const userMessage: ChatMessage = { role: 'user', content: trimmed };
     const updatedHistory = [...messages, userMessage];
 
-    setMessages(updatedHistory);
+    onMessagesChange(updatedHistory);
     setInput('');
     setError(null);
     setIsLoading(true);
@@ -34,10 +39,8 @@ export const Chat: React.FC = () => {
     }
 
     try {
-      console.log("trimmed input:", input)
-      console.log("messages input:", messages)
       const data = await sendChatMessage(trimmed, messages);
-      setMessages([...updatedHistory, { role: 'assistant', content: data.response }]);
+      onMessagesChange([...updatedHistory, { role: 'assistant', content: data.response }]);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -63,6 +66,18 @@ export const Chat: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-220px)] min-h-[400px]">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-1">
+        <span className="text-sm font-medium text-gray-500">Chat</span>
+        <button
+          onClick={onNewDiscussion}
+          disabled={messages.length === 0}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New discussion
+        </button>
+      </div>
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
         {isEmpty && !isLoading && (

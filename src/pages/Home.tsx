@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
@@ -6,6 +6,7 @@ import { Chat } from '../components/Chat';
 import { ReportsTable } from '../components/ReportsTable';
 import { SchemaEditor } from '../components/SchemaEditor';
 import { analyzeCRF, bulkUploadCSV, bulkUploadPDFs } from '../services/crfService';
+import type { ChatMessage } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
 import { Loader2, Activity, FileSearch, MessageSquare, Upload, Database, Settings2, LogOut } from 'lucide-react';
 
@@ -23,9 +24,32 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
   const [analysisResults, setAnalysisResults] = useState<AnalysisResponse | null>(null);
   const [bulkFiles, setBulkFiles] = useState<File[]>([]);
   const [bulkDragOver, setBulkDragOver] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const chatLastActivity = useRef<number>(Date.now());
+
+  const INACTIVITY_MS = 30 * 60 * 1000;
+
+  const handleTabChange = useCallback((tab: Tab) => {
+    if (tab === 'chat') {
+      if (Date.now() - chatLastActivity.current > INACTIVITY_MS) {
+        setChatMessages([]);
+      }
+    }
+    setActiveTab(tab);
+  }, []);
+
+  const handleChatMessagesChange = useCallback((msgs: ChatMessage[]) => {
+    setChatMessages(msgs);
+    chatLastActivity.current = Date.now();
+  }, []);
+
+  const handleNewDiscussion = useCallback(() => {
+    setChatMessages([]);
+    chatLastActivity.current = Date.now();
+  }, []);
 
   const analysisMutation = useMutation({
-    mutationFn: (file: File) => analyzeCRF(file, true, 5),
+    mutationFn: (file: File) => analyzeCRF(file, true, 5, selectedTable ?? undefined),
     onSuccess: (data) => {
       setAnalysisResults(data);
     },
@@ -114,7 +138,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
         {/* Tabs */}
         <div className="flex space-x-1 bg-gray-100 rounded-xl p-1 mb-6">
           <button
-            onClick={() => setActiveTab('analysis')}
+            onClick={() => handleTabChange('analysis')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'analysis'
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -125,7 +149,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
             Analysis
           </button>
           <button
-            onClick={() => setActiveTab('chat')}
+            onClick={() => handleTabChange('chat')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'chat'
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -136,7 +160,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
             Chat
           </button>
           <button
-            onClick={() => setActiveTab('bulk')}
+            onClick={() => handleTabChange('bulk')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'bulk'
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -147,7 +171,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
             Upload multiple CRs
           </button>
           <button
-            onClick={() => setActiveTab('reports')}
+            onClick={() => handleTabChange('reports')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'reports'
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -158,7 +182,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
             Reports
           </button>
           <button
-            onClick={() => setActiveTab('schema')}
+            onClick={() => handleTabChange('schema')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
               activeTab === 'schema'
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -366,7 +390,11 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
         {/* Chat Tab */}
         {activeTab === 'chat' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <Chat />
+            <Chat
+              messages={chatMessages}
+              onMessagesChange={handleChatMessagesChange}
+              onNewDiscussion={handleNewDiscussion}
+            />
           </div>
         )}
 

@@ -14,16 +14,18 @@ async function authHeaders(): Promise<Record<string, string>> {
 export const analyzeCRF = async (
   file: File,
   findSimilar: boolean = true,
-  numSimilar: number = 5
+  numSimilar: number = 5,
+  tableName: string = 'cardiologie'
 ): Promise<AnalysisResponse> => {
   const formData = new FormData();
   formData.append('file', file);
 
   console.log("Form data is ", file)
 
-  console.log("Calling the analyze API:", `${PYTHON_API_BASE_URL}/analyze?find_similar=${findSimilar}&num_similar=${numSimilar}`)
+  const url = `${PYTHON_API_BASE_URL}/analyze?find_similar=${findSimilar}&num_similar=${numSimilar}&table_name=${encodeURIComponent(tableName)}`;
+  console.log("Calling the analyze API:", url)
   const response = await fetch(
-    `${PYTHON_API_BASE_URL}/analyze?find_similar=${findSimilar}&num_similar=${numSimilar}`,
+    url,
     {
       method: 'POST',
       headers: await authHeaders(),
