@@ -59,6 +59,19 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
 
   return (
     <div className="space-y-6">
+      {/* Duplicate warning */}
+      {extraction.duplicate_of && (
+        <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-300 rounded-lg">
+          <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-orange-900">Duplicate detected</p>
+            <p className="text-sm text-orange-800 mt-0.5">
+              This document matches an existing record: <span className="font-mono font-medium">{extraction.duplicate_of}</span>. All non-ID fields are identical.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Extraction Status */}
       <div className={`p-4 rounded-lg ${extraction.success ? 'bg-green-50' : 'bg-red-50'}`}>
         <div className="flex items-center space-x-2">

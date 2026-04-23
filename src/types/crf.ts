@@ -7,6 +7,7 @@ export interface ExtractionResult {
   data: Record<string, any>;
   success: boolean;
   error: string | null;
+  duplicate_of: string | null;
 }
 
 export interface SimilarCase {

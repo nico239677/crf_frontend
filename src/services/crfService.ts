@@ -163,6 +163,68 @@ export const bulkUploadPDFs = async (files: File[]): Promise<BulkUploadResponse>
   return await response.json();
 };
 
+export interface PreviewRecord {
+  crh_number: string | null;
+  data: Record<string, any>;
+  duplicate_of: string | null;
+}
+
+export interface BulkPreviewResponse {
+  records: PreviewRecord[];
+  errors: { crh_number: string | null; error: string }[];
+}
+
+/**
+ * Extract/parse records from CSV or PDF files without inserting (preview step)
+ */
+export const bulkPreview = async (
+  files: File[],
+  tableName: string = 'main'
+): Promise<BulkPreviewResponse> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  const response = await fetch(
+    `${PYTHON_API_BASE_URL}/bulk-preview?table_name=${encodeURIComponent(tableName)}`,
+    {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Preview failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
+/**
+ * Confirm insertion of pre-extracted bulk records into crf_data
+ */
+export const bulkConfirm = async (
+  records: PreviewRecord[],
+  tableName: string = 'main'
+): Promise<BulkUploadResponse> => {
+  const response = await fetch(
+    `${PYTHON_API_BASE_URL}/bulk-confirm?table_name=${encodeURIComponent(tableName)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+      body: JSON.stringify({ records }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Confirm failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
 export interface PatientRecord {
   id?: string | number;
   crh_number: string | null;
