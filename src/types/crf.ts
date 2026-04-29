@@ -19,7 +19,8 @@ export interface SimilarCase {
 
 export interface AnalysisResponse {
   extraction: ExtractionResult;
-  recommendation: string;
+  recommendation?: string;
+  prescription_recommendation?: string;
   similar_cases: SimilarCase[];
 }
 

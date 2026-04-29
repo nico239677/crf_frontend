@@ -11,7 +11,8 @@ interface AnalysisResultsProps {
 }
 
 export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
-  const { extraction, recommendation, similar_cases } = results;
+  const { extraction, recommendation, prescription_recommendation, similar_cases } = results;
+  const documentSummary = prescription_recommendation || recommendation;
   const [expandedCases, setExpandedCases] = useState<Set<number>>(new Set());
   const [editedData, setEditedData] = useState<Record<string, any>>(extraction.data);
   const [isSaving, setIsSaving] = useState(false);
@@ -240,7 +241,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
         const prescriptionEntries = Object.entries(extraction.data).filter(([key]) =>
           PRESCRIPTION_KEYS.some(k => key.toLowerCase().includes(k))
         );
-        const hasContent = diagnosticEntries.length > 0 || prescriptionEntries.length > 0 || recommendation;
+        const hasContent = documentSummary || diagnosticEntries.length > 0 || prescriptionEntries.length > 0;
         if (!hasContent) return null;
         return (
           <div className="border border-indigo-200 rounded-lg p-6 bg-indigo-50">
@@ -249,36 +250,39 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
               <h3 className="text-lg font-semibold text-indigo-900">Document Summary</h3>
             </div>
             <div className="space-y-4">
-              {diagnosticEntries.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-2">Diagnostic</p>
-                  <div className="space-y-1">
-                    {diagnosticEntries.map(([key, value]) => (
-                      <div key={key} className="flex gap-2 text-sm">
-                        <span className="text-indigo-500 min-w-fit">{key.replace(/_/g, ' ')}:</span>
-                        <span className="text-indigo-900 font-medium">{value !== null && value !== undefined ? String(value) : '—'}</span>
+              {documentSummary ? (
+                <p className="text-sm text-indigo-900 bg-white border border-indigo-200 rounded p-3">
+                  {documentSummary}
+                </p>
+              ) : (
+                <>
+                  {diagnosticEntries.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-2">Diagnostic</p>
+                      <div className="space-y-1">
+                        {diagnosticEntries.map(([key, value]) => (
+                          <div key={key} className="flex gap-2 text-sm">
+                            <span className="text-indigo-500 min-w-fit">{key.replace(/_/g, ' ')}:</span>
+                            <span className="text-indigo-900 font-medium">{value !== null && value !== undefined ? String(value) : '—'}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {(prescriptionEntries.length > 0 || recommendation) && (
-                <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-2">Prescription</p>
-                  {prescriptionEntries.length > 0 && (
-                    <div className="space-y-1 mb-2">
-                      {prescriptionEntries.map(([key, value]) => (
-                        <div key={key} className="flex gap-2 text-sm">
-                          <span className="text-indigo-500 min-w-fit">{key.replace(/_/g, ' ')}:</span>
-                          <span className="text-indigo-900 font-medium">{value !== null && value !== undefined ? String(value) : '—'}</span>
-                        </div>
-                      ))}
                     </div>
                   )}
-                  {recommendation && (
-                    <p className="text-sm text-indigo-900 bg-white border border-indigo-200 rounded p-3">{recommendation}</p>
+                  {prescriptionEntries.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-2">Prescription</p>
+                      <div className="space-y-1 mb-2">
+                        {prescriptionEntries.map(([key, value]) => (
+                          <div key={key} className="flex gap-2 text-sm">
+                            <span className="text-indigo-500 min-w-fit">{key.replace(/_/g, ' ')}:</span>
+                            <span className="text-indigo-900 font-medium">{value !== null && value !== undefined ? String(value) : '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </div>
           </div>
