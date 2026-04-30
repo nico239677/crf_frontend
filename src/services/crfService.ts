@@ -82,7 +82,6 @@ export interface ChatResponse {
  */
 export const sendChatMessage = async (
   message: string,
-  history: ChatMessage[],
   tableName: string = 'main'
 ): Promise<ChatResponse> => {
   const response = await fetch(

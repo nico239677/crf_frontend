@@ -41,7 +41,7 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDis
     }
 
     try {
-      const data = await sendChatMessage(trimmed, messages, tableName);
+      const data = await sendChatMessage(trimmed, tableName);
       onMessagesChange([
         ...updatedHistory,
         { role: 'assistant', content: data.response, has_subset: data.has_subset },
