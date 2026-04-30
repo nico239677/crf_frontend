@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Plus, Download } from 'lucide-react';
+import { Send, Bot, User, Loader2, Download } from 'lucide-react';
 import { sendChatMessage, downloadChatSubset } from '../services/crfService';
 import type { ChatMessage } from '../services/crfService';
 
 interface ChatProps {
   messages: ChatMessage[];
   onMessagesChange: (messages: ChatMessage[]) => void;
-  onNewDiscussion: () => void;
   tableName?: string;
 }
 
-export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDiscussion, tableName = 'main' }) => {
+export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, tableName = 'main' }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,19 +69,7 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDis
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-220px)] min-h-[400px]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-1">
-        <span className="text-sm font-medium text-gray-500">Chat</span>
-        <button
-          onClick={onNewDiscussion}
-          disabled={messages.length === 0}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          New discussion
-        </button>
-      </div>
+    <div className="flex flex-col h-full min-h-0">
       {/* Message list */}
       <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4">
         {isEmpty && !isLoading && (
