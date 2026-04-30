@@ -645,6 +645,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
                 messages={chatMessages}
                 onMessagesChange={handleChatMessagesChange}
                 onNewDiscussion={handleNewDiscussion}
+                tableName={selectedTable ?? 'main'}
               />
             </div>
           )}

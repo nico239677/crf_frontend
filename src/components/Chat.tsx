@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Plus } from 'lucide-react';
-import { sendChatMessage } from '../services/crfService';
+import { Send, Bot, User, Loader2, Plus, Download } from 'lucide-react';
+import { sendChatMessage, downloadChatSubset } from '../services/crfService';
 import type { ChatMessage } from '../services/crfService';
 
 interface ChatProps {
   messages: ChatMessage[];
   onMessagesChange: (messages: ChatMessage[]) => void;
   onNewDiscussion: () => void;
+  tableName?: string;
 }
 
-export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDiscussion }) => {
+export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDiscussion, tableName = 'main' }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -39,8 +41,11 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDis
     }
 
     try {
-      const data = await sendChatMessage(trimmed, messages);
-      onMessagesChange([...updatedHistory, { role: 'assistant', content: data.response }]);
+      const data = await sendChatMessage(trimmed, messages, tableName);
+      onMessagesChange([
+        ...updatedHistory,
+        { role: 'assistant', content: data.response, has_subset: data.has_subset },
+      ]);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -108,15 +113,35 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDis
               )}
             </div>
 
-            {/* Bubble */}
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-tl-sm'
-              }`}
-            >
-              {msg.content}
+            {/* Bubble + optional download button */}
+            <div className="flex flex-col gap-1.5 max-w-[75%]">
+              <div
+                className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-tr-sm'
+                    : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+                }`}
+              >
+                {msg.content}
+              </div>
+
+              {/* Download button — only for assistant messages with a subset */}
+              {msg.role === 'assistant' && msg.has_subset && (
+                <button
+                  onClick={async () => {
+                    setDownloadError(null);
+                    try {
+                      await downloadChatSubset(tableName);
+                    } catch (err: any) {
+                      setDownloadError(err.message || 'Download failed.');
+                    }
+                  }}
+                  className="self-start flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors border border-blue-200"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download CSV
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -134,10 +159,18 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, onNewDis
           </div>
         )}
 
-        {/* Error */}
+        {/* Chat error */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
             {error}
+          </div>
+        )}
+
+        {/* Download error */}
+        {downloadError && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm text-orange-700 flex items-center justify-between">
+            {downloadError}
+            <button onClick={() => setDownloadError(null)} className="ml-3 text-orange-400 hover:text-orange-600">✕</button>
           </div>
         )}
 

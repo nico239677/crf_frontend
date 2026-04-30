@@ -15,7 +15,7 @@ export const analyzeCRF = async (
   file: File,
   findSimilar: boolean = true,
   numSimilar: number = 5,
-  tableName: string = 'cardiologie'
+  tableName: string = 'main'
 ): Promise<AnalysisResponse> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -68,10 +68,13 @@ export const extractCRFData = async (file: File): Promise<ExtractionResult> => {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  has_subset?: boolean;  // true when this assistant message produced a downloadable subset
 }
 
 export interface ChatResponse {
   response: string;
+  conversation_id: string;
+  has_subset: boolean;
 }
 
 /**
@@ -79,13 +82,17 @@ export interface ChatResponse {
  */
 export const sendChatMessage = async (
   message: string,
-  history: ChatMessage[]
+  history: ChatMessage[],
+  tableName: string = 'main'
 ): Promise<ChatResponse> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/chat-with-data`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-    body: JSON.stringify({ message, history }),
-  });
+  const response = await fetch(
+    `${PYTHON_API_BASE_URL}/chat-with-data?table_name=${encodeURIComponent(tableName)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+      body: JSON.stringify({ message }),
+    }
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Chat request failed' }));
@@ -93,6 +100,31 @@ export const sendChatMessage = async (
   }
 
   return await response.json();
+};
+
+/**
+ * Download the most recent filtered patient subset as CSV
+ */
+export const downloadChatSubset = async (tableName: string = 'main'): Promise<void> => {
+  const response = await fetch(
+    `${PYTHON_API_BASE_URL}/chat/download?table_name=${encodeURIComponent(tableName)}`,
+    { headers: await authHeaders() }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: 'Download failed' }));
+    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'patients_subset.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 /**
@@ -264,7 +296,7 @@ export const getTables = async (): Promise<string[]> => {
 /**
  * Fetch all patients from the crf_patients table
  */
-export const getPatients = async (tableName: string = 'cardiologie'): Promise<PatientRecord[]> => {
+export const getPatients = async (tableName: string = 'main'): Promise<PatientRecord[]> => {
   console.log("Getting all CRs")
   const response = await fetch(`${PYTHON_API_BASE_URL}/patients?table_name=${encodeURIComponent(tableName)}`, {
     headers: await authHeaders(),
@@ -293,7 +325,7 @@ export interface SchemaField {
 /**
  * Fetch the current CRF field schema
  */
-export const getSchema = async (tableName: string = 'cardiologie'): Promise<SchemaField[]> => {
+export const getSchema = async (tableName: string = 'main'): Promise<SchemaField[]> => {
   const response = await fetch(`${PYTHON_API_BASE_URL}/schema?table_name=${encodeURIComponent(tableName)}`, {
     headers: await authHeaders(),
   });
@@ -310,7 +342,7 @@ export const getSchema = async (tableName: string = 'cardiologie'): Promise<Sche
 export const updateSchema = async (
   fields: SchemaField[],
   renames: Record<string, string> = {},
-  tableName: string = 'cardiologie'
+  tableName: string = 'main'
 ): Promise<{ status: string; fields: number; ddl_run: string[] }> => {
   const response = await fetch(`${PYTHON_API_BASE_URL}/schema?table_name=${encodeURIComponent(tableName)}`, {
     method: 'PUT',
