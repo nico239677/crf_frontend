@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import midaLogo from '../assets/mida-logo.png';
 import { useMutation } from '@tanstack/react-query';
 import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
@@ -12,7 +11,7 @@ import type { AnalysisResponse } from '../types/crf';
 import { useChatHistory } from '../hooks/useChatHistory';
 import type { Conversation } from '../hooks/useChatHistory';
 import {
-  Loader2, FileSearch, MessageSquare,
+  Loader2, Activity, FileSearch, MessageSquare,
   Upload, Database, Settings2, LogOut, ChevronDown, X, Plus, MessageCircle,
 } from 'lucide-react';
 
@@ -656,8 +655,11 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
         <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200">
           <div className="max-w-4xl mx-auto px-6 h-14 flex items-center gap-3">
             {/* Logo */}
-            <div className="flex items-center">
-              <img src={midaLogo} alt="Mida" className="h-8 w-auto" />
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-white" />
+              </span>
+              <span className="text-sm font-bold text-gray-900 tracking-tight">CRF Platform</span>
             </div>
 
             <div className="flex-1" />
