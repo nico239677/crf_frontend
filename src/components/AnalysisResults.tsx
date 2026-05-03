@@ -173,7 +173,13 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
                         ) : (
                           <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0" />
                         )}
-                        <p className="font-semibold text-gray-900 text-base">{case_.crh_number}</p>
+                        <span
+                          className="font-semibold text-blue-600 text-base px-2 py-1 rounded hover:underline hover:bg-blue-50 cursor-pointer transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Open document (coming soon)"
+                        >
+                          {case_.crh_number}
+                        </span>
                       </div>
                       <span className="text-sm font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
                         {(case_.similarity_score * 100).toFixed(1)}% match
