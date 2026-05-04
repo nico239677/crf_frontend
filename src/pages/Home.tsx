@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { FileUpload } from '../components/FileUpload';
 import { AnalysisResults } from '../components/AnalysisResults';
 import { Chat } from '../components/Chat';
 import { ReportsTable } from '../components/ReportsTable';
 import { SchemaEditor } from '../components/SchemaEditor';
-import { analyzeCRF, bulkPreview, bulkConfirm } from '../services/crfService';
+import { TableDropdown } from '../components/TableDropdown';
+import { analyzeCRF, bulkPreview, bulkConfirm, getTables } from '../services/crfService';
 import type { PreviewRecord, BulkUploadResponse } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
 import { useChatHistory } from '../hooks/useChatHistory';
@@ -327,6 +328,16 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
   const [primaryMode, setPrimaryMode] = useState<PrimaryMode>('analysis');
   const [activeTool, setActiveTool] = useState<ToolPanel>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
+
+  const tablesQuery = useQuery({ queryKey: ['tables'], queryFn: getTables });
+  const tables = tablesQuery.data ?? [];
+
+  // Auto-select first table once loaded
+  useEffect(() => {
+    if (selectedTable === null && tables.length > 0) {
+      setSelectedTable(tables[0]);
+    }
+  }, [tables, selectedTable]);
 
   // Analysis state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -692,14 +703,31 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
           {primaryMode === 'analysis' && (
             <>
               <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
-                <h2 className="text-base font-bold text-gray-900 mb-4">Upload CRF Document</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-bold text-gray-900">Upload CRF Document</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Table:</span>
+                    {tables.length > 0 ? (
+                      <TableDropdown
+                        tables={tables}
+                        selected={selectedTable ?? tables[0]}
+                        onSelect={setSelectedTable}
+                      />
+                    ) : tablesQuery.isLoading ? (
+                      <span className="text-sm text-gray-400">Loading…</span>
+                    ) : (
+                      <span className="text-sm text-red-500">No tables</span>
+                    )}
+                  </div>
+                </div>
                 <FileUpload onFileSelect={handleFileSelect} maxSize={10} />
 
                 {selectedFile && !analysisMutation.isPending && !analysisResults && (
                   <div className="mt-5">
                     <button
                       onClick={handleAnalyze}
-                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                      disabled={tables.length === 0}
+                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Analyze Document
                     </button>
