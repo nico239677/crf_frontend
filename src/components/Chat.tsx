@@ -6,10 +6,9 @@ import type { ChatMessage } from '../services/crfService';
 interface ChatProps {
   messages: ChatMessage[];
   onMessagesChange: (messages: ChatMessage[]) => void;
-  tableName?: string;
 }
 
-export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, tableName = 'main' }) => {
+export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +39,7 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, tableNam
     }
 
     try {
-      const data = await sendChatMessage(trimmed, tableName);
+      const data = await sendChatMessage(trimmed);
       onMessagesChange([
         ...updatedHistory,
         { role: 'assistant', content: data.response, has_subset: data.has_subset },
@@ -118,7 +117,7 @@ export const Chat: React.FC<ChatProps> = ({ messages, onMessagesChange, tableNam
                   onClick={async () => {
                     setDownloadError(null);
                     try {
-                      await downloadChatSubset(tableName);
+                      await downloadChatSubset();
                     } catch (err: any) {
                       setDownloadError(err.message || 'Download failed.');
                     }

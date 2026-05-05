@@ -82,10 +82,9 @@ export interface ChatResponse {
  */
 export const sendChatMessage = async (
   message: string,
-  tableName: string = 'main'
 ): Promise<ChatResponse> => {
   const response = await fetch(
-    `${PYTHON_API_BASE_URL}/chat-with-data?table_name=${encodeURIComponent(tableName)}`,
+    `${PYTHON_API_BASE_URL}/chat-with-data`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...await authHeaders() },
@@ -104,9 +103,9 @@ export const sendChatMessage = async (
 /**
  * Download the most recent filtered patient subset as CSV
  */
-export const downloadChatSubset = async (tableName: string = 'main'): Promise<void> => {
+export const downloadChatSubset = async (): Promise<void> => {
   const response = await fetch(
-    `${PYTHON_API_BASE_URL}/chat/download?table_name=${encodeURIComponent(tableName)}`,
+    `${PYTHON_API_BASE_URL}/chat/download`,
     { headers: await authHeaders() }
   );
 
@@ -353,6 +352,17 @@ export const updateSchema = async (
     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
   }
   return await response.json();
+};
+
+/**
+ * Pre-warm the chatbot (loads all user tables — fire-and-forget)
+ */
+export const warmupChatbot = async (): Promise<void> => {
+  const headers = await authHeaders();
+  fetch(`${PYTHON_API_BASE_URL}/chatbot/warmup`, {
+    method: 'POST',
+    headers,
+  }).catch(() => {/* warmup is best-effort */});
 };
 
 /**

@@ -6,7 +6,7 @@ import { Chat } from '../components/Chat';
 import { ReportsTable } from '../components/ReportsTable';
 import { SchemaEditor } from '../components/SchemaEditor';
 import { TableDropdown } from '../components/TableDropdown';
-import { analyzeCRF, bulkPreview, bulkConfirm, getTables } from '../services/crfService';
+import { analyzeCRF, bulkPreview, bulkConfirm, getTables, warmupChatbot } from '../services/crfService';
 import type { PreviewRecord, BulkUploadResponse } from '../services/crfService';
 import type { AnalysisResponse } from '../types/crf';
 import { useChatHistory } from '../hooks/useChatHistory';
@@ -338,6 +338,9 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
       setSelectedTable(tables[0]);
     }
   }, [tables, selectedTable]);
+
+  // Warmup chatbot once on mount (loads all tables server-side)
+  useEffect(() => { warmupChatbot(); }, []);
 
   // Analysis state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -791,7 +794,6 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
                 <Chat
                   messages={currentMessages}
                   onMessagesChange={updateMessages}
-                  tableName={selectedTable ?? 'main'}
                 />
               </div>
             </div>
