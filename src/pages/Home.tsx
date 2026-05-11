@@ -363,7 +363,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
 
   // Analysis mutation
   const analysisMutation = useMutation({
-    mutationFn: (file: File) => analyzeCRF(file, true, 5, selectedTable ?? undefined),
+    mutationFn: (file: File) => analyzeCRF(file, true, 5, selectedTable!),
     onSuccess: (data) => setAnalysisResults(data),
     onError: (error: any) => console.error('Analysis failed:', error),
   });
@@ -749,7 +749,7 @@ export const Home: React.FC<HomeProps> = ({ onSignOut, userEmail }) => {
               {analysisResults && !analysisMutation.isPending && (
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">
                   <h2 className="text-base font-bold text-gray-900 mb-5">Analysis Results</h2>
-                  <AnalysisResults results={analysisResults} />
+                  <AnalysisResults results={analysisResults} tableName={selectedTable ?? 'main'} />
                   <div className="mt-6 pt-6 border-t border-gray-100">
                     <button
                       onClick={() => { setSelectedFile(null); setAnalysisResults(null); }}

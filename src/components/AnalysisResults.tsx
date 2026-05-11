@@ -8,9 +8,10 @@ const PRESCRIPTION_KEYS = ['prescription', 'traitement', 'treatment', 'medicamen
 
 interface AnalysisResultsProps {
   results: AnalysisResponse;
+  tableName?: string;
 }
 
-export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
+export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, tableName = 'main' }) => {
   const { extraction, recommendation, prescription_recommendation, similar_cases } = results;
   const documentSummary = prescription_recommendation || recommendation;
   const [expandedCases, setExpandedCases] = useState<Set<number>>(new Set());
@@ -27,7 +28,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => 
     setIsSaving(true);
     setSaveStatus('idle');
     try {
-      await saveEmbedding(extraction.crh_number, editedData);
+      await saveEmbedding(extraction.crh_number, editedData, tableName);
       setSaveStatus('success');
       console.log('Embedding saved successfully', { crh_number: extraction.crh_number, data: editedData });
     } catch (error) {

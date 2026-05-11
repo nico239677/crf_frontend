@@ -15,7 +15,7 @@ export const analyzeCRF = async (
   file: File,
   findSimilar: boolean = true,
   numSimilar: number = 5,
-  tableName: string = 'main'
+  tableName: string
 ): Promise<AnalysisResponse> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -24,6 +24,7 @@ export const analyzeCRF = async (
 
   const url = `${PYTHON_API_BASE_URL}/analyze?find_similar=${findSimilar}&num_similar=${numSimilar}&table_name=${encodeURIComponent(tableName)}`;
   console.log("Calling the analyze API:", url)
+  console.log("Adding to table:", tableName)
   const response = await fetch(
     url,
     {
@@ -130,13 +131,17 @@ export const downloadChatSubset = async (): Promise<void> => {
  */
 export const saveEmbedding = async (
   crh_number: string | null,
-  data: Record<string, any>
+  data: Record<string, any>,
+  tableName: string = 'main'
 ): Promise<void> => {
-  const response = await fetch(`${PYTHON_API_BASE_URL}/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...await authHeaders() },
-    body: JSON.stringify({ crh_number, data }),
-  });
+  const response = await fetch(
+    `${PYTHON_API_BASE_URL}/confirm?table_name=${encodeURIComponent(tableName)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...await authHeaders() },
+      body: JSON.stringify({ crh_number, data }),
+    }
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Confirm failed' }));
